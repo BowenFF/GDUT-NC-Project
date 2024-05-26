@@ -176,15 +176,15 @@ class My_NC_Project(Ui_NC_Project, QMainWindow):
             self.radioButton_clockwise.setChecked(True)
             self.radioButton_zuodaobu.setChecked(True)
         if not self.radioButton_juedui.isChecked():
-            self.radioButton_juedui.setChecked(True)
             self.daoju.setText("1")
-            self.jingei.setText("100")
+            self.jingei.setText("1000")
             self.zhuzhou.setText("500")
             self.anquan.setText("50")
             self.shendu.setText("5")
             #####起刀点设置
             self.label_X.setText("0")
             self.label_Y.setText("0")
+            self.radioButton_juedui.setChecked(True)
         self.jiagongdonghua()
 
     def back(self):
@@ -473,10 +473,14 @@ class My_NC_Project(Ui_NC_Project, QMainWindow):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_plot)
         if self.jingei.text() == '':
-            time = 100
+            time = 1000
         else:
             time = float(self.jingei.text())
         self.timer.start(1000/time)  # 每xx毫秒更新一次
+        # 心脏线过切报警
+        if self.radioButton_xinzang.isChecked():
+            if not (self.daoju.text() == ''):
+                self.guoqieyujing()
 
     def update_plot(self):
         if self.current_index >= len(self.x_values):
@@ -523,6 +527,8 @@ class My_NC_Project(Ui_NC_Project, QMainWindow):
 
     def clockwise(self):
         if not self.radioButton_clockwise.isChecked():
+            return
+        if (self.daoju.text()==''):
             return
         else:
             if self.daoju.text() == '':
@@ -577,6 +583,8 @@ class My_NC_Project(Ui_NC_Project, QMainWindow):
 
     def zuodaobu(self):
         if not self.radioButton_zuodaobu.isChecked():
+            return
+        if (self.daoju.text()==''):
             return
         if self.daoju.text() == '':
             tool_radius = 1
@@ -661,6 +669,12 @@ class My_NC_Project(Ui_NC_Project, QMainWindow):
                     if (self.offset_x_array ==  self.offset_y_array) :
                         return
         self.plot_animation()
+
+    def guoqieyujing(self):
+        msg_box = QMessageBox()
+        msg_box.setWindowTitle("过切警告")
+        msg_box.setText("心脏线加工会有过切问题，已做近似处理")
+        msg_box.exec()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
