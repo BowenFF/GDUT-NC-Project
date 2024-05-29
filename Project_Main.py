@@ -261,7 +261,7 @@ class My_NC_Project(Ui_NC_Project, QMainWindow):
     def about(self):
         msg_box = QMessageBox()
         msg_box.setWindowTitle("小组信息")
-        msg_box.setText("小组成员：\n王淳锋 3121000016\n黄兴文 3121000006\n余文基 3121000019\n指导老师：姜永军")
+        msg_box.setText("小组成员：\nxxx 3xxxx\nxxx 3xxxx\nxxx 3xxxx\n指导老师：xxx")
         msg_box.exec()
 
     def close(self):
