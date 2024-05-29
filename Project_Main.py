@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QMessageBox, QGraphicsView, QGraphicsScene, QGraphicsProxyWidget,
     QWidget, QVBoxLayout, QLabel
 )
-from PyQt6.QtGui import  QIcon, QPixmap
+from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtCore import Qt, QTimer
 
 from Project import Ui_NC_Project
@@ -66,6 +66,14 @@ class My_NC_Project(Ui_NC_Project, QMainWindow):
         self.layout = QVBoxLayout(self.scroll_content)
         self.NC_code.setWidget(self.scroll_content)
         self.show()
+    def __sub__(self, other):
+        if isinstance(other, My_NC_Project):
+            return My_NC_Project(self.value - other.value)
+        else:
+            return My_NC_Project(self.value - other)
+    # 计算两点之间的距离
+    def distance(self, p1, p2):
+        return np.linalg.norm(p1 - p2)
 
     def xinzang(self):
         if self.radioButton_xinzang.isChecked():
@@ -245,7 +253,7 @@ class My_NC_Project(Ui_NC_Project, QMainWindow):
                 t_start, t_end = 0, 2 * np.pi
                 error_threshold = float(self.lineEdit_wucha.text())  # 误差阈值，根据实际需求设定
                 # 进行等误差插补
-                self.t_values, self.x_values, self.y_values, self.num_segments = self.equal_error_interpolation(t_start,t_end,error_threshold,)
+                self.t_values, self.x_values, self.y_values, self.num_segments = self.equal_error_interpolation(t_start, t_end, error_threshold)
                 self.plot_figure(self.x_values, self.y_values, scale)
                 self.lineEdit_duanshu.setText(f"{self.num_segments}")
 
@@ -297,7 +305,7 @@ class My_NC_Project(Ui_NC_Project, QMainWindow):
         # 创建图形
         fig = Figure(figsize=(5, 5), dpi=100)
         ax = fig.add_subplot(111)
-        if self.comboBox_chabu.currentIndex()==0:
+        if self.comboBox_chabu.currentIndex() == 0:
             ax.plot(x_vals, y_vals, color='red')
         else:
             ax.plot(x_vals, y_vals, color='blue')
@@ -378,37 +386,46 @@ class My_NC_Project(Ui_NC_Project, QMainWindow):
             y_values = np.concatenate(([self.sinline(t_start)[1]], y_values))
         return t_values, x_values, y_values, segments - 1  # 返回线段数（即插补点数量减一）
 
+
+
+
     # 等误差插补法
     def equal_error_interpolation(self, t_start, t_end, error_threshold):
+
+        t = t_start  # 初始参数
+        nodes = []  # 存储节点坐标
+        dt = error_threshold  # 参数增量，可根据需要调整以提高精度
+
         if self.radioButton_xinzang.isChecked():
-            points = [(t_start, self.plot_xinzang(t_start))]
+            current_point = self.plot_xinzang(t)
         else:
-            points = [(t_start, self.sinline(t_start))]
-        t = t_start
+            # points = [(t_start, self.sinline(t))]
+            current_point = self.sinline(t)
+        nodes.append(current_point)
         while t < t_end:
-            h = 0.01  # 初始步长，可以根据需要调整
-            while True:
-                t_next = t + h
-                if t_next > t_end:
-                    t_next = t_end
-                if self.radioButton_xinzang.isChecked():
-                    x_next, y_next = self.plot_xinzang(t_next)
-                else:
-                    x_next, y_next = self.sinline(t_next)
-                chord = self.chord_length(t, t_next)
-                # 如果弦长误差小于阈值，则接受这个步长
-                if chord <= error_threshold:
-                    break
-                # 否则减小步长并重新尝试
-                h /= 2
-                # 添加新点到插补结果中
-            points.append((t_next, (x_next, y_next)))
-            t = t_next
-            # 提取插补点的参数和坐标
-        t_values = [p[0] for p in points]
-        x_values, y_values = zip(*[p[1] for p in points])
-        # 返回插补结果和线段数（即插补点数量减一）
-        return t_values, x_values, y_values, len(points) - 1
+            t += dt
+            if self.radioButton_xinzang.isChecked():
+                next_point = self.plot_xinzang(t)
+            else:
+                next_point = self.sinline(t)
+            if self.distance(np.array(current_point), np.array(next_point)) > error_threshold:
+                nodes.append(next_point)
+                current_point = next_point
+        if self.distance(np.array(nodes[0]), np.array(nodes[-1])) > error_threshold:
+            nodes.append(nodes[0])
+        # for i, node in enumerate(nodes):
+        #     # print(f"节点 {i + 1}: ({node[0]}, {node[1]})")
+        #     x_values = np.array(node[0])
+        #     y_values = np.array(node[1])
+        # x_values = [node[0] for node in nodes]
+        # y_values = [node[1] for node in nodes]
+        t_values = [p[0] for p in nodes]
+        x_values, y_values = zip(*nodes)
+        x_values = list(x_values)
+        y_values = list(y_values)
+        # print(f"节点 {i + 1}: ({x_values}, {x_values})")
+        return t_values, x_values, y_values, len(nodes) - 1
+
 
     # 计算两点之间的弦长
     def chord_length(self, t1, t2, n=100):
@@ -475,8 +492,8 @@ class My_NC_Project(Ui_NC_Project, QMainWindow):
         if self.jingei.text() == '':
             time = 1000
         else:
-            time = float(self.jingei.text())
-        self.timer.start(1000/time)  # 每xx毫秒更新一次
+            time = float(self.jingei.text())    # 进给速度
+            self.timer.start(1000/time)  # 每xx毫秒更新一次
         # 心脏线过切报警
         if self.radioButton_xinzang.isChecked():
             if not (self.daoju.text() == ''):

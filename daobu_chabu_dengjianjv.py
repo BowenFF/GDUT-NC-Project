@@ -1,8 +1,6 @@
 import math
-
 import numpy as np
-import matplotlib.pyplot as plt
-import cv2
+
 from PyQt6.QtWidgets import QMessageBox
 np.seterr(divide='ignore',invalid='ignore')
 
@@ -104,18 +102,18 @@ def offset_curve(x_values, y_values, tool_radius, direction):
         third_point_y = y_values[i]
 
     offsets.append((offsets[0]))
-    if guoqie and direction == 'left':
-        left = int(len(offsets) * 3 / 8)
-        right = int(len(offsets) * 5 / 8)
-        while offsets[left][1] >= offsets[left + 1][1]:
-            left += 1
-        while offsets[right - 1][1] <= offsets[right][1]:
-            right -= 1
-        while left + 1 != right:
-            del offsets[left + 1]
-            right -= 1
-        offsets.insert(left + 1, (offsets[left][0], offsets[left][1] - tool_radius))
-        offsets.insert(left + 2, (offsets[left + 2][0], offsets[left + 2][1] - tool_radius))
+    # if guoqie and direction == 'left':
+    #     left = int(len(offsets) * 3 / 8)
+    #     right = int(len(offsets) * 5 / 8)
+    #     while offsets[left][1] >= offsets[left + 1][1]:
+    #         left += 1
+    #     while offsets[right - 1][1] <= offsets[right][1]:
+    #         right -= 1
+    #     while left + 1 != right:
+    #         del offsets[left + 1]
+    #         right -= 1
+    #     offsets.insert(left + 1, (offsets[left][0], offsets[left][1] - tool_radius))
+    #     offsets.insert(left + 2, (offsets[left + 2][0], offsets[left + 2][1] - tool_radius))
     return zip(*offsets)
 
 # 绘制心脏线和刀具中心轨迹
