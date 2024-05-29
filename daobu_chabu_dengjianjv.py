@@ -122,16 +122,40 @@ def plot_heart_curve_with_tool_path(x_values, y_values, tool_radius, direction):
     offset_x = list(offset_x)
     offset_y = list(offset_y)
     if direction == 'left':
-        while offset_x[0] < 0:
+        while offset_x[0] < 0 and offset_x[1] < 0:
             del offset_x[0]
             del offset_y[0]
         while True:
             num = len(offset_x) - 1
-            if offset_x[num] > 0 or offset_y[num] < offset_y[0]:
+            if (offset_x[num] > 0 or offset_y[num] < offset_y[0]) and offset_x[num - 1] > 0:
                 del offset_x[num]
                 del offset_y[num]
             else:
                 break
+        k1 = (offset_y[1] - offset_y[0]) / (offset_x[1] - offset_x[0])
+        b1 = offset_y[0] - k1 * offset_x[0]
+        num = len(offset_x) - 1
+        k2 = (offset_y[num] - offset_y[num - 1]) / (offset_x[num] - offset_x[num - 1])
+        b2 = offset_y[num] - k2 * offset_x[num]
+        x = (b1 - b2) / (k2 - k1)
+        y = k1 * x + b1
+        del offset_x[num]
+        del offset_y[num]
+        del offset_x[0]
+        del offset_y[0]
+        offset_x.insert(0, x)
+        offset_y.insert(0, y)
+        offset_x.append(x)
+        offset_y.append(y)
+        left = int(len(offset_x) * 3 / 8)
+        while offset_x[left] > 0:
+            left += 1
+        k = (offset_y[left + 1] - offset_y[left]) / (offset_x[left + 1] - offset_x[left])
+        if abs(k) < 10:
+            offset_x.insert(left, offset_x[left])
+            offset_y.insert(left, offset_y[left] - tool_radius)
+            offset_x.insert(left, offset_x[left - 1])
+            offset_y.insert(left, offset_y[left - 1] - tool_radius)
         return offset_x, offset_y
 
     elif direction == 'right':
@@ -147,8 +171,22 @@ def plot_heart_curve_with_tool_path(x_values, y_values, tool_radius, direction):
                 right -= 1
             else:
                 break
-        del offset_x[left: right]
-        del offset_y[left: right]
+        if left != right:
+            del offset_x[left + 1: right]
+            del offset_y[left + 1: right]
+            k1 = (offset_y[left] - offset_y[left - 1]) / (offset_x[left] - offset_x[left - 1])
+            b1 = offset_y[left] - k1 * offset_x[left]
+            right = left + 1
+            k2 = (offset_y[right] - offset_y[right + 1]) / (offset_x[right] - offset_x[right - 1])
+            b2 = offset_y[right] - k2 * offset_x[right]
+            x = (b1 - b2) / (k2 - k1)
+            y = k1 * x + b1
+            del offset_x[left]
+            del offset_y[left]
+            del offset_x[left]
+            del offset_y[left]
+            offset_x.insert(left, x)
+            offset_y.insert(left, y)
         while True:
             num = len(offset_x) - 1
             if num <= 0:
@@ -156,11 +194,22 @@ def plot_heart_curve_with_tool_path(x_values, y_values, tool_radius, direction):
                 msg_box.setWindowTitle("过切警告")
                 msg_box.setText("刀具半径过大造成过切，请减小刀具半径")
                 msg_box.exec()
-                break
+                return zip((0, 0))
             if offset_x[num] > 0 or offset_y[num] <= offset_y[0]:
                 del offset_x[num]
                 del offset_y[num]
             else:
                 break
+        temp = int(len(offset_x) / 10)
+        while offset_y[temp + 1] > offset_y[temp]:
+            temp += 1
+        temp = int(temp / 2)
+        dist = math.sqrt(pow(offset_y[temp] - offset_y[0], 2) + pow(offset_x[0] + tool_radius - offset_x[temp], 2))
+        if tool_radius >= dist * 2:
+            msg_box = QMessageBox()
+            msg_box.setWindowTitle("过切警告")
+            msg_box.setText("刀具半径过大造成过切，请减小刀具半径")
+            msg_box.exec()
+            return zip((0, 0))
         return offset_x, offset_y
 
