@@ -85,11 +85,11 @@ class My_NC_Project(Ui_NC_Project, QMainWindow):
         pixmap = QPixmap("formula1.jpg")  # 将 "path/to/your/image.png" 替换为你的图片路径
         scaled_pixmap = pixmap.scaled(pixmap.width() //2.6 , pixmap.height() //1.5 )
         self.Function_Equation.setPixmap(scaled_pixmap)
-        self.Function_Equation.resize(scaled_pixmap.width(), scaled_pixmap.height())# 调整 QLabel 的大小以适应图片
+        self.Function_Equation.resize(scaled_pixmap.width(), scaled_pixmap.height()) # 调整 QLabel 的大小以适应图片
         if not self.Parameter_Function.text():
             self.Parameter_Function.setText("0.9")
         if not self.lineEdit_wucha.text():
-            self.lineEdit_wucha.setText("0.1")
+            self.lineEdit_wucha.setText("0.01")
         self.a = float(self.Parameter_Function.text())  # 获取参数值
         error = float(self.lineEdit_wucha.text())
         scale = 10
@@ -185,7 +185,7 @@ class My_NC_Project(Ui_NC_Project, QMainWindow):
             self.radioButton_zuodaobu.setChecked(True)
         if not self.radioButton_juedui.isChecked():
             self.daoju.setText("1")
-            self.jingei.setText("1000")
+            self.jingei.setText("20")
             self.zhuzhou.setText("500")
             self.anquan.setText("50")
             self.shendu.setText("5")
@@ -258,10 +258,11 @@ class My_NC_Project(Ui_NC_Project, QMainWindow):
                 self.lineEdit_duanshu.setText(f"{self.num_segments}")
 
 
+
     def about(self):
         msg_box = QMessageBox()
         msg_box.setWindowTitle("小组信息")
-        msg_box.setText("小组成员：\nxxx 3xxxx\nxxx 3xxxx\nxxx 3xxxx\n指导老师：xxx")
+        msg_box.setText("小组成员：xxxxxxx\n指导老师：xxx")
         msg_box.exec()
 
     def close(self):
@@ -293,7 +294,7 @@ class My_NC_Project(Ui_NC_Project, QMainWindow):
             use_relative_coordinates = True
         nc_code = generate_nc_code(self.t_values, self.x_values, self.y_values, tool_radius=tool_radius, feed_rate=feed_rate, spindle_speed=spindle_speed,
                      safety_height=safety_height, cut_depth=shendu, start_point=start_point, compensation_direction=compensation_direction,
-                     use_relative_coordinates=use_relative_coordinates)
+                     use_relative_coordinates=use_relative_coordinates, clockwise_judge=self.radioButton_clockwise.isChecked(), zhonglei=self.radioButton_xinzang.isChecked())
         # 将数控代码添加到内容部件
         for line in nc_code:
             label = QLabel(line)
@@ -357,7 +358,7 @@ class My_NC_Project(Ui_NC_Project, QMainWindow):
     def plot_xinzang(self, t):
         x = self.a * (16 * math.sin(t) ** 3)
         y = self.a * (13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t))
-        return x,y
+        return x, y
 
     # 等间距插补法
     def adaptive_equal_spacing_interpolation(self,t_start, t_end, initial_segments, max_distance,):
@@ -447,7 +448,7 @@ class My_NC_Project(Ui_NC_Project, QMainWindow):
 
         # 创建一个 plot
         self.plot = self.plot_widget.addPlot(title="仿真加工")
-        self.plot.setXRange(-20,20)
+        self.plot.setXRange(-23,23)
         self.plot.setYRange(-20, 20)
         self.plot.showGrid(x=True, y=True)
 
@@ -490,7 +491,7 @@ class My_NC_Project(Ui_NC_Project, QMainWindow):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_plot)
         if self.jingei.text() == '':
-            time = 1000
+            time = 20
         else:
             time = float(self.jingei.text())    # 进给速度
             self.timer.start(1000/time)  # 每xx毫秒更新一次
@@ -530,12 +531,12 @@ class My_NC_Project(Ui_NC_Project, QMainWindow):
                         x_circle = self.offset_x_array[self.current_index] + tool_radius * np.cos(angle)
                         y_circle = self.offset_y_array[self.current_index] + tool_radius * np.sin(angle)
                     else:
-                        x_circle = self.offset_x_array[-(self.current_index)] + tool_radius * np.cos(angle)
-                        y_circle = self.offset_y_array[-(self.current_index)] + tool_radius * np.sin(angle)
+                        x_circle = self.offset_x_array[-(self.current_index+1)] + tool_radius * np.cos(angle)
+                        y_circle = self.offset_y_array[-(self.current_index+1)] + tool_radius * np.sin(angle)
                 else:
                     if self.radioButton_xinzang.isChecked():
-                        x_circle = self.offset_x_array[-(self.current_index)] + tool_radius * np.cos(angle)
-                        y_circle = self.offset_y_array[-(self.current_index)] + tool_radius * np.sin(angle)
+                        x_circle = self.offset_x_array[-(self.current_index+1)] + tool_radius * np.cos(angle)
+                        y_circle = self.offset_y_array[-(self.current_index+1)] + tool_radius * np.sin(angle)
                     else:
                         x_circle = self.offset_x_array[self.current_index] + tool_radius * np.cos(angle)
                         y_circle = self.offset_y_array[self.current_index] + tool_radius * np.sin(angle)
@@ -569,9 +570,11 @@ class My_NC_Project(Ui_NC_Project, QMainWindow):
                         return
             self.plot_animation()
 
-    def anticlockwise(self):
+    # 逆时针
+    def anticlockwise(self, clockwise):
         if not self.radioButton_anticlockwise.isChecked():
-            return
+            clockwise = True
+            return clockwise
         else:
             if self.daoju.text() == '':
                 tool_radius = 1
